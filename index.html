@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="PT-BR">
+<head>
+	<meta charset="UTF-8"/>
+	<title>Desenvolvimento de um Sistema Operacional</title>
+	<link rel="stylesheet" type="text/css" href="main.css"/>
+	<link rel="shortcut icon" type="image/png" href="favicon.png"/>
+</head>
+<body>
+	<div class=conteiner>
+		<h1>Introdução</h1>
+		<img src="imagem1.png" width=400 height=240 style="margin-left:30%; margin-top:20px; margin-bottom:20px;"/>
+		<p>
+			Todos nós usamos um sistema operacional (OS) antes (ex. Windows XP, Linux, etc.), e possívelmente tivemos até que escrever alguns programas para rodar em um, mas para que serve um sistema operacional? Quanto do que vejo quando uso um computador é feito através de hardware e quanto é feito através de software? e como realmente um funciona um computador?
+		</p>
+		<p>
+			O falecido Professor Doug Shepherd, um amável professor que tive na Universidade de Lanchester, uma vez me lembrou em meio minhas resmungadas sobre algum problema de programação irritante que, na época, antes ele poderia até tentar pesquisar, ele teve que escrever seu próprio sistema operacional, do zero. Então parece que, hoje, teríamos que ter muito reconhecimento sobre como essas máquinas incríveis realmente funcionavam por baixo de toda aquela camada de software que geralmente trás um pacote ele e com todo mais que for requerido no dia-a-dia do usuário.
+		</p>
+		<p>
+			Aqui, concentrando na arquitetura ampla chamada x86, nós iremos desnudar nosso computador de todo o software e seguir os primeiros passos do Professor Doug, dessa forma aprendendo como:
+		</p>
+		<ul>
+			<li>Como um computador dá boot</li>
+			<li>Como escrever programas de baixo nível em um panorama estéril onde não há sistema operacional</li>
+			<li>Como configurar o processador de modo que nós possamos iniciar a usar suas funcionalidades extendidas</li>
+			<li>Como dar bootstrap em um código escrito em uma linguagem de auto nível, de modo que possamos realmente iniciar a fazer alguns progressos para nosso sistemas operacional</li>
+			<li>Como criar alguns serviços fundamentais para o sistema operacional, como drivers de dispositivos, sistemas de arquivos, processos multi tarefas</li>	
+		</ul>
+		<p>
+			Note que, em termos de um sistema operacional prático, este guia não foi feito com o alvo de ser mais extensivo, mas ao invés disso, busca combinar trechos de informação de muitas fontes dentro de uma documentação coerente, que buscando dar uma certa experiência de programação de baixo nível, como sistemas operacionais são escritos, e os tipos de problemas que eles devem resolver. A abordagem feita por este guia é única naquilo que diz respeito a linguagens e ferramentas particulares (ex. assembly, C, Make, etc.) não serem o foco, mas ao invés são tratadas como um meio para um fim: nós aprenderemos o que deve ser necessário para nos ajudar a atingir nosso principal objetivo.
+		</p>
+		<h1>Arquitetura de Computador e o Processo de Boot</h1>
+		<h2>O Processo de Boot</h2>
+		<p>
+			Agora, nós iremos começar nossa jornada.<br/>
+			Quando nós reiniciamos nosso computador, ele deve inicializar novamente, inicialmente sem nenhuma noção de sistema operacional. De alguma forma, o sistema operacional deve ser carregado -- seja ele qual for -- de algum dispositivo de armazenamento permanente que é atualmente inserido no computador (ex. disquetes, HD, pendrive, etc.).
+		</p>
+		<p>
+			Como brevemente iremos descobrir, um ambiente de pré operacional do nosso computador oferece pouco no caminho de ricos serviços: nesse estágio, até um simples sistema de arquivo poderá ser uma luxúria (ex. ler e escrever arquivos lógicos no disco), porém não temos nada disto. Felizmente, o que nós temos é o Software Básico de Entrada e Saída ou Basic Input Output Software (BIOS), uma coleção de rotinas de software que são inicialmente carregado de um chip para dentro da memória e inicializado quando o computador é inicialmente ligado. A BIOS providencia auto detecção e básico controle dos dispositivos essenciais do nosso computador, monitor, teclado e HDs.
+		</p>
+		<p>
+			Depois que a BIOS completa alguns testes de baixo nível do hardware, particularmente idependente da resposta a memória instalada está funcionando autalmente, deve carregar o sistema operacional armazenado em um de seus dispositivos. Aqui, vamos deixar claro que a BIOS não pode simplesmente carregar um arquivo que represente nosso sistema operacional por um disco, uma vez que a BIOS não possui noção do que é um sistema de arquivos. A BIOS deve executar setores específicos dos dados (normalmente 512 bytes de tamanho) de uma locação específica de um dispositivo de armazenamento, tal como cilíndro 2, cabeça 3, setor 5 (detalhes a respeito de como endereçamento são descritos está na seção XXX)
+		</p>
+		<p>
+			Então, o lugar mais fácil para a BIOS encontrar nosso sistema é no primeiro setor de um dos discos (ex. cilíndro 0, cabeça 0, setor 0), conhecido como <span>boot sector</span>. Uma vez que alguns de nossos discos podem não conter o sistema operacional (eles podem simplesmente ser conectados por um armazenamento adicional), então é importante que a BIOS possa determinar se o boot sector de um dispositivo de armazenamento particular possui o código do boot que pode ser executado ou se são simplesmente dados. Note que a CPU não faz diferença entre código e dados: ambos podem ser interpretado pela CPU como instruções, onde o código é simplesmente instruções que foram programadas para algum propósito específico.
+		</p>
+		<p>
+			Novamente, uma maneira não muito sofisticado é adotada pela BIOS, onde os útimos dois bytes do que é intendido como boot sector devem ser setados com os valores <span>0xaa55</span>. Então, a BIOS o procura por esse valor em cada dispositivo de armazenamento (ex. disquetes, HD, drive de CD, etc.), lendo o boot sector dentro da memória, e instruindo a CPU a iniciar executando o primeiro boot sector, terminando quando o número mágico for encontrado.
+		</p>
+		<p>
+			É aque onde obtemos controle do computador.
+		</p>
+		<h2>BIOS, Boot Blocks, e o Número Mágico</h2>
+		<p>
+			Se nós usarmos um editor binário, tal como TexPad ou GHex, que nos mostrará uma tabela de dados do arquivo, então nós poderemos criar nós mesmos um boot sector.
+		</p>
+		<table style="border:solid 1px #FFF; padding:5px; padding-left:20px; padding-right:20px; margin-left:30%;">
+			<tr>
+				<td>E9</td>
+				<td>FD</td>
+				<td>FF</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+			</tr>
+			<tr>
+				<td>*</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>00</td>
+				<td>55</td>
+				<td>AA</td>
+			</tr>
+		</table>
+	</div>
+</body>
+</html>

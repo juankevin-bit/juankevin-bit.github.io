@@ -1,0 +1,41 @@
+@font-face{
+	font-family: source-code;
+	src: url("SourceCodePro-Regular.ttf") format("TrueType");
+}
+@font-face{
+	font-family: source-bold;
+	src: url("SourceCodePro-Bold.ttf") format("TrueType");
+}
+@font-face{
+	font-family: Syncopate;
+	src: url("Syncopate-Regular.ttf") format("TrueType");
+}
+body{
+	background-image:url("bg.png");
+	color: #c2d8ff;
+	font-family: source-code;
+	font-size:1rem;
+}
+h1, h2{
+	font-family: source-bold;
+}
+p{
+	text-indent:1.5rem;
+}
+ul{
+	list-style-type:square;
+}
+span{
+	font-family: Syncopate;
+}
+.conteiner{
+	width:1024px;
+	margin:0xpx;
+	margin-left:15%;
+	margin-top:10px;
+	padding-left:15px;
+	padding-right:15px;
+	padding-top:5px;
+	padding-bottom:5px;
+	background-color: rgba(000, 000, 000, 0.5);
+}
